@@ -14,6 +14,7 @@ use alloc::vec::Vec;
 use core::ops::{Add, AddAssign, Deref, DerefMut, Mul, Neg, Sub, SubAssign};
 use dusk_bls12_381::BlsScalar;
 use dusk_bytes::{DeserializableSlice, Serializable};
+use rand_core::{CryptoRng, RngCore};
 
 #[cfg(feature = "rkyv-impl")]
 use bytecheck::CheckBytes;
@@ -110,7 +111,7 @@ impl Polynomial {
     }
 
     /// Evaluates a [`Polynomial`] at a given point in the field.
-    pub(crate) fn evaluate(&self, point: &BlsScalar) -> BlsScalar {
+    pub fn evaluate(&self, point: &BlsScalar) -> BlsScalar {
         if self.is_zero() {
             return BlsScalar::zero();
         }
@@ -313,6 +314,16 @@ impl Polynomial {
     fn iter_with_index(&self) -> Vec<(usize, BlsScalar)> {
         self.iter().cloned().enumerate().collect()
     }
+    
+    /// Outputs a polynomial of degree `d` where each coefficient is sampled
+    /// uniformly at random from the field `F`.
+    pub fn rand<R: RngCore + CryptoRng>(d: usize, mut rng: &mut R) -> Self {
+        let mut random_coeffs = Vec::with_capacity(d + 1);
+        for _ in 0..=d {
+            random_coeffs.push(util::random_scalar(&mut rng));
+        }
+        Self::from_coefficients_vec(random_coeffs)
+    }
 
     /// Divides a [`Polynomial`] by x-z using Ruffinis method.
     pub fn ruffini(&self, z: BlsScalar) -> Polynomial {
@@ -412,25 +423,6 @@ impl<'a, 'b> Sub<&'a BlsScalar> for &'b Polynomial {
 #[cfg(test)]
 mod test {
     use super::*;
-    use rand_core::{CryptoRng, RngCore};
-
-    impl Polynomial {
-        /// Outputs a polynomial of degree `d` where each coefficient is sampled
-        /// uniformly at random from the field `F`.
-        /// This is only implemented for test purposes for now but inside of a
-        /// `impl` block since it's used across multiple files in the
-        /// repo.
-        pub(crate) fn rand<R: RngCore + CryptoRng>(
-            d: usize,
-            mut rng: &mut R,
-        ) -> Self {
-            let mut random_coeffs = Vec::with_capacity(d + 1);
-            for _ in 0..=d {
-                random_coeffs.push(util::random_scalar(&mut rng));
-            }
-            Self::from_coefficients_vec(random_coeffs)
-        }
-    }
 
     #[test]
     fn test_ruffini() {

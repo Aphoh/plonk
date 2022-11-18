@@ -124,7 +124,7 @@ impl CommitKey {
     }
 
     /// Returns the maximum degree polynomial that you can commit to.
-    pub(crate) fn max_degree(&self) -> usize {
+    pub fn max_degree(&self) -> usize {
         self.powers_of_g.len() - 1
     }
 
